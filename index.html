@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Living Room Control</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --tile: #1b1f2a;
+      --ok: #1e8e3e;
+      --warn: #c5221f;
+      --accent: #3a5ccc;
+      --accent2: #8e3ec3;
+      --accent3: #d98324;
+      --txt: #fff;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: var(--bg); color: var(--txt); font-family: system-ui, sans-serif;
+    }
+    .wrap {
+      min-height: 100vh; display: grid; gap: 16px; padding: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      align-content: center; justify-items: center;
+    }
+    button {
+      width: 100%; max-width: 420px; height: 140px;
+      border: none; border-radius: 16px; color: #fff; font-size: 24px; font-weight: 600;
+      background: var(--tile); cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0,0,0,.25);
+      transition: transform .06s ease, filter .2s ease;
+      touch-action: manipulation;
+    }
+    button:active { transform: scale(.98); }
+    .nextOn  { background: var(--ok); }
+    .nextOff { background: var(--warn); }
+    .scene1 { background: var(--accent); }
+    .scene2 { background: var(--accent2); }
+    .scene3 { background: var(--accent3); }
+    .hint { text-align:center; opacity:.7; font-size:14px; margin-top:-6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Toggle Button shows what will happen next -->
+    <button id="toggle" class="nextOn">Turn Lights ON</button>
+
+    <!-- Scene Buttons -->
+    <button id="goodnight" class="scene1">Goodnight</button>
+    <button id="tv"        class="scene2">TV Mode</button>
+    <button id="dim"       class="scene3">Dim the Lights</button>
+  </div>
+  <p class="hint">Tap once per action. Each press shows the next possible state.</p>
+
+  <script>
+    let busy = false;
+    function fire(url) {
+      if (busy) return;
+      busy = true;
+      return fetch(url, { method: 'GET', cache: 'no-store' })
+        .catch(console.error)
+        .finally(() => setTimeout(() => busy = false, 600));
+    }
+
+    // URLs
+    const urls = {
+      on:  "https://www.virtualsmarthome.xyz/url_routine_trigger/activate.php?trigger=8facd6ab-1e0c-4251-8704-5702a7d02472&token=749050ba-dab8-4719-9020-a41e35c3a76a&response=html",
+      off: "https://www.virtualsmarthome.xyz/url_routine_trigger/activate.php?trigger=824c67ed-6baf-4cf5-8a53-a4df3338b8bb&token=1c3a68d7-7a05-45c7-806c-c2b6e4107c01&response=html",
+
+      goodnight: "https://www.virtualsmarthome.xyz/url_routine_trigger/activate.php?trigger=0dc02fde-cfb7-4cf3-be3c-e56285e92a68&token=8ad1e3c6-bf9d-4b24-abb0-7b89fcd825bd&response=html",
+      tv:        "https://www.virtualsmarthome.xyz/url_routine_trigger/activate.php?trigger=ed9976ae-2e3f-4377-918c-7a96e8bdaebe&token=7724514e-8a4d-462f-aeb4-ce458bb2b4d5&response=html",
+      dim:       "https://www.virtualsmarthome.xyz/url_routine_trigger/activate.php?trigger=32be6355-f26b-47a4-8d2a-845eec6031c8&token=a3b7542b-7f23-4186-8d2e-385780ba9459&response=html"
+    };
+
+    // Toggle state (false = off, so first click turns on)
+    let isOn = false;
+    const toggleBtn = document.getElementById('toggle');
+
+    function updateToggleLabel() {
+      if (isOn) {
+        toggleBtn.textContent = "Turn Lights OFF";
+        toggleBtn.className = "nextOff";
+      } else {
+        toggleBtn.textContent = "Turn Lights ON";
+        toggleBtn.className = "nextOn";
+      }
+    }
+    updateToggleLabel();
+
+    toggleBtn.addEventListener('click', () => {
+      const url = isOn ? urls.off : urls.on;
+      fire(url).then(() => {
+        isOn = !isOn;
+        updateToggleLabel();
+      });
+    });
+
+    // Scenes
+    document.getElementById('goodnight').addEventListener('click', () => {
+      fire(urls.goodnight).then(() => {
+        // Goodnight turns off main lights (only TV backlight remains)
+        isOn = false;
+        updateToggleLabel();
+      });
+    });
+    
+    document.getElementById('tv').addEventListener('click', () => {
+      fire(urls.tv).then(() => {
+        // TV mode turns lights on
+        isOn = true;
+        updateToggleLabel();
+      });
+    });
+    
+    document.getElementById('dim').addEventListener('click', () => {
+      fire(urls.dim).then(() => {
+        // Dim keeps lights on
+        isOn = true;
+        updateToggleLabel();
+      });
+    });
+  </script>
+</body>
+</html>
